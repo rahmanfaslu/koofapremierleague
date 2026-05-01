@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Upload, CheckCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../utils/supabase'
+import qrCode from '../assets/qr-code.png'
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -233,6 +234,29 @@ function Register() {
                 className="hidden"
               />
             </label>
+          </div>
+
+          {/* Payment QR Code */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+            <h3
+              className="text-lg font-bold text-gray-900 mb-1"
+              style={{ fontFamily: "'Poppins', sans-serif" }}
+            >
+              Pay <span className="text-amber-600">₹100</span> using this QR Code
+            </h3>
+            <p className="text-sm text-gray-500 mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              Scan the QR code below with any UPI app and upload the payment screenshot
+            </p>
+            <div className="flex justify-center mb-3">
+              <img
+                src={qrCode}
+                alt="Payment QR Code"
+                className="w-48 h-48 sm:w-56 sm:h-56 rounded-lg shadow-md border border-gray-200 bg-white p-2"
+              />
+            </div>
+            <p className="text-xs text-gray-400" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              UPI ID: www.mohammedrashid19@okicici
+            </p>
           </div>
 
           {/* Payment Screenshot Upload */}
