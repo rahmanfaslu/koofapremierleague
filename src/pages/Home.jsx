@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import heroBanner from '../assets/landing page.jpg'
 import heroMobile from '../assets/landing mobile.jpg'
 import logo from '../assets/koofa logo round.png'
@@ -30,7 +31,7 @@ function Home() {
         <div className="absolute inset-0 bg-black/10" />
 
         {/* Navigation Links - Simple Inline Header */}
-        <nav className="absolute top-0 left-0 right-0 z-20 flex justify-center gap-8 sm:gap-12 py-6">
+        <nav className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center gap-8 sm:gap-12 py-6 px-4">
           {navLinks.map((link) => (
             <a
               key={link.name}
@@ -40,6 +41,13 @@ function Home() {
               {link.name}
             </a>
           ))}
+          {/* Admin Link - Right Side */}
+          <Link
+            to="/admin/login"
+            className="absolute right-4 sm:right-8 text-xs font-medium tracking-wide text-white/40 uppercase transition-colors duration-300 hover:text-white/80"
+          >
+            Admin
+          </Link>
         </nav>
 
         {/* Center Content */}
