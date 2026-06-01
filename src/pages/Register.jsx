@@ -4,6 +4,7 @@ import { Upload, CheckCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { supabase } from '../utils/supabase'
 import qrCode from '../assets/qr-code.png'
+import MobileMenu from '../components/MobileMenu'
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -118,7 +119,8 @@ function Register() {
   }
 
   return (
-    <section id="register" className="bg-white py-16 md:py-24 flex-grow">
+    <section id="register" className="bg-white py-16 md:py-24 flex-grow relative">
+      <MobileMenu />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '../utils/supabase'
+import MobileMenu from '../components/MobileMenu'
 import {
   Goal,
   RectangleVertical,
@@ -9,110 +11,50 @@ import {
   Trophy,
 } from 'lucide-react'
 
-// Placeholder data — will be replaced with Supabase queries later
 const placeholderImage = 'https://ui-avatars.com/api/?background=f59e0b&color=fff&bold=true&size=128&name='
 
-const statsData = {
+const statsConfig = {
   topScorer: {
     label: 'Top Scorer',
+    statLabel: 'Goals',
     icon: Goal,
     color: 'from-amber-500 to-orange-500',
     borderColor: 'border-amber-300',
     bgAccent: 'bg-amber-500',
     iconColor: 'text-amber-500',
     lightBg: 'bg-amber-50',
-    featured: {
-      name: 'Player Name',
-      team: 'Team Name',
-      stat: 0,
-      statLabel: 'Goals',
-      image: null,
-    },
-    leaderboard: [
-      { rank: 1, name: 'Player 1', team: 'Team A', stat: 0, image: null },
-      { rank: 2, name: 'Player 2', team: 'Team B', stat: 0, image: null },
-      { rank: 3, name: 'Player 3', team: 'Team C', stat: 0, image: null },
-      { rank: 4, name: 'Player 4', team: 'Team D', stat: 0, image: null },
-      { rank: 5, name: 'Player 5', team: 'Team E', stat: 0, image: null },
-    ],
   },
   redCard: {
     label: 'Red Card',
+    statLabel: 'Red Cards',
     icon: RectangleVertical,
     color: 'from-red-500 to-rose-600',
     borderColor: 'border-red-300',
     bgAccent: 'bg-red-500',
     iconColor: 'text-red-500',
     lightBg: 'bg-red-50',
-    featured: {
-      name: 'Player Name',
-      team: 'Team Name',
-      stat: 0,
-      statLabel: 'Red Cards',
-      image: null,
-    },
-    leaderboard: [
-      { rank: 1, name: 'Player 1', team: 'Team A', stat: 0, image: null },
-      { rank: 2, name: 'Player 2', team: 'Team B', stat: 0, image: null },
-      { rank: 3, name: 'Player 3', team: 'Team C', stat: 0, image: null },
-      { rank: 4, name: 'Player 4', team: 'Team D', stat: 0, image: null },
-      { rank: 5, name: 'Player 5', team: 'Team E', stat: 0, image: null },
-    ],
   },
   yellowCard: {
     label: 'Yellow Card',
+    statLabel: 'Yellow Cards',
     icon: TriangleAlert,
     color: 'from-yellow-400 to-amber-500',
     borderColor: 'border-yellow-300',
     bgAccent: 'bg-yellow-500',
     iconColor: 'text-yellow-500',
     lightBg: 'bg-yellow-50',
-    featured: {
-      name: 'Player Name',
-      team: 'Team Name',
-      stat: 0,
-      statLabel: 'Yellow Cards',
-      image: null,
-    },
-    leaderboard: [
-      { rank: 1, name: 'Player 1', team: 'Team A', stat: 0, image: null },
-      { rank: 2, name: 'Player 2', team: 'Team B', stat: 0, image: null },
-      { rank: 3, name: 'Player 3', team: 'Team C', stat: 0, image: null },
-      { rank: 4, name: 'Player 4', team: 'Team D', stat: 0, image: null },
-      { rank: 5, name: 'Player 5', team: 'Team E', stat: 0, image: null },
-    ],
   },
   cleanSheet: {
     label: 'Clean Sheets',
+    statLabel: 'Clean Sheets',
     icon: ShieldCheck,
     color: 'from-emerald-500 to-green-600',
     borderColor: 'border-emerald-300',
     bgAccent: 'bg-emerald-500',
     iconColor: 'text-emerald-500',
     lightBg: 'bg-emerald-50',
-    featured: {
-      name: 'Player Name',
-      team: 'Team Name',
-      stat: 0,
-      statLabel: 'Clean Sheets',
-      image: null,
-    },
-    leaderboard: [
-      { rank: 1, name: 'Player 1', team: 'Team A', stat: 0, image: null },
-      { rank: 2, name: 'Player 2', team: 'Team B', stat: 0, image: null },
-      { rank: 3, name: 'Player 3', team: 'Team C', stat: 0, image: null },
-      { rank: 4, name: 'Player 4', team: 'Team D', stat: 0, image: null },
-      { rank: 5, name: 'Player 5', team: 'Team E', stat: 0, image: null },
-    ],
   },
 }
-
-const summaryCards = [
-  { label: 'Matches Played', value: 0, icon: ClipboardList, iconColor: 'text-amber-500' },
-  { label: 'Goals Scored', value: 0, icon: Goal, iconColor: 'text-orange-500' },
-  { label: 'Red Cards', value: 0, icon: RectangleVertical, iconColor: 'text-red-500' },
-  { label: 'Clean Sheets', value: 0, icon: ShieldCheck, iconColor: 'text-emerald-500' },
-]
 
 const tabs = [
   { key: 'topScorer', label: 'Top Scorer' },
@@ -162,14 +104,121 @@ function RankBadge({ rank }) {
 
 function Stats() {
   const [activeTab, setActiveTab] = useState('topScorer')
-  const currentData = statsData[activeTab]
-  const IconComponent = currentData.icon
+  const [stats, setStats] = useState(null)
+  const [summaryStats, setSummaryStats] = useState({
+    matchesPlayed: 0,
+    goalsScored: 0,
+    redCards: 0,
+    cleanSheets: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        setLoading(true)
+
+        // 1. Fetch all teams to map team_id to team name & logo
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('id, name, logo')
+
+        const teamsMap = {}
+        teamsData?.forEach((team) => {
+          teamsMap[team.id] = { name: team.name, logo: team.logo }
+        })
+
+        // 2. Fetch tournament summary stats
+        const { data: summaryData } = await supabase
+          .from('tournament_stats')
+          .select('*')
+
+        if (summaryData && summaryData.length > 0) {
+          const s = summaryData[0]
+          setSummaryStats({
+            matchesPlayed: s.matches_played ?? 0,
+            goalsScored: s.goals_scored ?? 0,
+            redCards: s.red_cards ?? 0,
+            cleanSheets: s.clean_sheets ?? 0,
+          })
+        }
+
+        // 3. Fetch player stats ordered by respective fields
+        const { data: statsData, error: statsError } = await supabase
+          .from('player_stats')
+          .select(`
+            goals,
+            yellow_cards,
+            red_cards,
+            clean_sheets,
+            player:player_id(
+              id,
+              name,
+              team_id,
+              photo_url,
+              position
+            )
+          `)
+
+        if (statsError) throw statsError
+
+        const processLeaderboard = (field) => {
+          if (!statsData) return []
+          const filtered = statsData
+            .filter((row) => row[field] > 0)
+            .sort((a, b) => (b[field] || 0) - (a[field] || 0))
+
+          return filtered.map((row, idx) => ({
+            rank: idx + 1,
+            name: row.player?.name || 'Unknown Player',
+            team: teamsMap[row.player?.team_id]?.name || 'Unknown Team',
+            stat: row[field] || 0,
+            image: row.player?.photo_url || null,
+          }))
+        }
+
+        setStats({
+          topScorer: processLeaderboard('goals'),
+          redCard: processLeaderboard('red_cards'),
+          yellowCard: processLeaderboard('yellow_cards'),
+          cleanSheet: processLeaderboard('clean_sheets'),
+        })
+      } catch (err) {
+        console.error('Error fetching statistics:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [])
+
+  const currentConfig = statsConfig[activeTab]
+  const IconComponent = currentConfig.icon
+
+  const currentLeaderboard = stats ? stats[activeTab] : []
+  const featuredPlayer = currentLeaderboard.length > 0
+    ? currentLeaderboard[0]
+    : {
+        name: 'No Active Leader',
+        team: 'Tournament in Progress',
+        stat: 0,
+        image: null,
+      }
+
+  const summaryCards = [
+    { label: 'Matches Played', value: summaryStats.matchesPlayed, icon: ClipboardList, iconColor: 'text-amber-500' },
+    { label: 'Goals Scored', value: summaryStats.goalsScored, icon: Goal, iconColor: 'text-orange-500' },
+    { label: 'Red Cards', value: summaryStats.redCards, icon: RectangleVertical, iconColor: 'text-red-500' },
+    { label: 'Clean Sheets', value: summaryStats.cleanSheets, icon: ShieldCheck, iconColor: 'text-emerald-500' },
+  ]
 
   return (
     <section
       id="stats"
       className="bg-gray-50 py-16 md:py-24 relative overflow-hidden"
     >
+      <MobileMenu />
       {/* Subtle background pattern */}
       <div
         className="absolute inset-0 opacity-[0.4]"
@@ -248,7 +297,7 @@ function Stats() {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide uppercase transition-all duration-300 border ${
                 activeTab === tab.key
-                  ? `bg-gradient-to-r ${statsData[tab.key].color} text-white border-transparent shadow-lg shadow-amber-500/20`
+                  ? `bg-gradient-to-r ${statsConfig[tab.key].color} text-white border-transparent shadow-lg shadow-amber-500/20`
                   : 'bg-white text-gray-500 border-gray-200 hover:border-amber-300 hover:text-amber-600 shadow-sm'
               }`}
             >
@@ -257,126 +306,143 @@ function Stats() {
           ))}
         </motion.div>
 
-        {/* Main Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
-            className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6"
-          >
-            {/* Featured Player Card */}
-            <div
-              className={`lg:col-span-2 relative bg-white border ${currentData.borderColor} rounded-2xl p-6 sm:p-8 overflow-hidden shadow-sm`}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
+            <div className="w-10 h-10 border-4 border-gray-200 border-t-amber-500 rounded-full animate-spin" />
+            <p className="text-sm text-gray-500 font-semibold uppercase tracking-wider" style={{ fontFamily: "'Poppins', sans-serif" }}>Loading Statistics...</p>
+          </div>
+        ) : (
+          /* Main Content */
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6"
             >
-              {/* Decorative gradient blob */}
+              {/* Featured Player Card */}
               <div
-                className={`absolute -top-20 -right-20 w-48 h-48 bg-gradient-to-br ${currentData.color} rounded-full opacity-10 blur-3xl`}
-              />
+                className={`lg:col-span-2 relative bg-white border ${currentConfig.borderColor} rounded-2xl p-6 sm:p-8 overflow-hidden shadow-sm`}
+              >
+                {/* Decorative gradient blob */}
+                <div
+                  className={`absolute -top-20 -right-20 w-48 h-48 bg-gradient-to-br ${currentConfig.color} rounded-full opacity-10 blur-3xl`}
+                />
 
-              <span className="inline-block text-[10px] sm:text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-6">
-                Featured {currentData.label}
-              </span>
+                <span className="inline-block text-[10px] sm:text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-6">
+                  Featured {currentConfig.label}
+                </span>
 
-              <div className="relative flex flex-col items-center text-center">
-                {/* Player Image */}
-                <div className="relative mb-5">
-                  <PlayerImage
-                    src={currentData.featured.image}
-                    name={currentData.featured.name}
-                    size="lg"
-                  />
-                  <div
-                    className={`absolute -bottom-1 -right-1 flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r ${currentData.color} text-white text-[10px] font-bold shadow-lg`}
+                <div className="relative flex flex-col items-center text-center">
+                  {/* Player Image */}
+                  <div className="relative mb-5">
+                    <PlayerImage
+                      src={featuredPlayer.image}
+                      name={featuredPlayer.name}
+                      size="lg"
+                    />
+                    {currentLeaderboard.length > 0 && (
+                      <div
+                        className={`absolute -bottom-1 -right-1 flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r ${currentConfig.color} text-white text-[10px] font-bold shadow-lg`}
+                      >
+                        <Trophy className="w-3 h-3" /> #1
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Player Info */}
+                  <h3
+                    className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-wide mb-1"
+                    style={{ fontFamily: "'Poppins', sans-serif" }}
                   >
-                    <Trophy className="w-3 h-3" /> #1
+                    {featuredPlayer.name}
+                  </h3>
+                  <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-6">
+                    {featuredPlayer.team}
+                  </p>
+
+                  {/* Stat Circle */}
+                  <div
+                    className={`w-24 h-24 rounded-full bg-gradient-to-br ${currentConfig.color} flex flex-col items-center justify-center shadow-xl`}
+                  >
+                    <span className="text-3xl font-extrabold text-white leading-none">
+                      {featuredPlayer.stat ?? 0}
+                    </span>
+                    <span className="text-[9px] font-bold tracking-widest text-white/70 uppercase mt-0.5">
+                      {currentConfig.statLabel}
+                    </span>
                   </div>
                 </div>
-
-                {/* Player Info */}
-                <h3
-                  className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-wide mb-1"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  {currentData.featured.name}
-                </h3>
-                <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-6">
-                  {currentData.featured.team}
-                </p>
-
-                {/* Stat Circle */}
-                <div
-                  className={`w-24 h-24 rounded-full bg-gradient-to-br ${currentData.color} flex flex-col items-center justify-center shadow-xl`}
-                >
-                  <span className="text-3xl font-extrabold text-white leading-none">
-                    {currentData.featured.stat}
-                  </span>
-                  <span className="text-[9px] font-bold tracking-widest text-white/70 uppercase mt-0.5">
-                    {currentData.featured.statLabel}
-                  </span>
-                </div>
               </div>
-            </div>
 
-            {/* Leaderboard */}
-            <div className="lg:col-span-3 bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
-              <span className="inline-block text-[10px] sm:text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-5">
-                Top Five
-              </span>
+              {/* Leaderboard */}
+              <div className="lg:col-span-3 bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+                <span className="inline-block text-[10px] sm:text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-5">
+                  Top Five
+                </span>
 
-              <div className="space-y-3">
-                {currentData.leaderboard.map((player, index) => (
-                  <motion.div
-                    key={`${activeTab}-${player.rank}`}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.06 }}
-                    className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-all duration-300 ${
-                      player.rank === 1
-                        ? `${currentData.lightBg} border ${currentData.borderColor}`
-                        : 'bg-gray-50/50 hover:bg-gray-100/80 border border-transparent hover:border-gray-200'
-                    }`}
-                  >
-                    {/* Rank */}
-                    <RankBadge rank={player.rank} />
+                {currentLeaderboard.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                    <IconComponent className="w-12 h-12 stroke-[1.5] mb-2 opacity-55 text-amber-500" />
+                    <p className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: "'Poppins', sans-serif" }}>No stats recorded yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {currentLeaderboard.slice(0, 5).map((player, index) => (
+                      <motion.div
+                        key={`${activeTab}-${player.rank}`}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.06 }}
+                        className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-all duration-300 ${
+                          player.rank === 1
+                            ? `${currentConfig.lightBg} border ${currentConfig.borderColor}`
+                            : 'bg-gray-50/50 hover:bg-gray-100/80 border border-transparent hover:border-gray-200'
+                        }`}
+                      >
+                        {/* Rank */}
+                        <RankBadge rank={player.rank} />
 
-                    {/* Player Image */}
-                    <PlayerImage
-                      src={player.image}
-                      name={player.name}
-                      size="sm"
-                    />
+                        {/* Player Image */}
+                        <PlayerImage
+                          src={player.image}
+                          name={player.name}
+                          size="sm"
+                        />
 
-                    {/* Player Details */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm sm:text-base font-bold text-gray-800 truncate tracking-wide">
-                        {player.name}
-                      </h4>
-                      <p className="text-[10px] sm:text-xs font-medium tracking-wider text-gray-400 uppercase truncate">
-                        {player.team}
-                      </p>
-                    </div>
+                        {/* Player Details */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm sm:text-base font-bold text-gray-800 truncate tracking-wide">
+                            {player.name}
+                          </h4>
+                          <p className="text-[10px] sm:text-xs font-medium tracking-wider text-gray-400 uppercase truncate">
+                            {player.team}
+                          </p>
+                        </div>
 
-                    {/* Stat */}
-                    <div className="text-right flex-shrink-0">
-                      <span className="text-xl sm:text-2xl font-extrabold text-gray-900">
-                        {player.stat}
-                      </span>
-                      <p className="text-[9px] sm:text-[10px] font-bold tracking-widest text-gray-400 uppercase">
-                        {currentData.featured.statLabel}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+                        {/* Stat */}
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-xl sm:text-2xl font-extrabold text-gray-900">
+                            {player.stat}
+                          </span>
+                          <p className="text-[9px] sm:text-[10px] font-bold tracking-widest text-gray-400 uppercase">
+                            {currentConfig.statLabel}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
     </section>
   )
 }
 
 export default Stats
+
