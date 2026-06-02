@@ -182,17 +182,19 @@ function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 mt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-500 text-center sm:text-left">
+          <p className="text-sm   text-center sm:text-left">
             &copy; {currentYear} Koofa Premier League (KPL). All rights reserved.
           </p>
-          <div className="flex items-center gap-6">
+          {/* <div className="flex items-center gap-6">
             <a href="#" className="text-xs text-gray-500 hover:text-amber-400 transition-colors duration-200">
               Privacy Policy
             </a>
             <a href="#" className="text-xs text-gray-500 hover:text-amber-400 transition-colors duration-200">
               Terms of Service
             </a>
-          </div>
+          </div> */}
+          <p className='text-sm text-center sm:text-left'> Designed & Developed by Faslu Rahman | Contact: +91 9207119149
+          </p>
         </div>
 
       </div>
