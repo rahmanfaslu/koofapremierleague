@@ -7,6 +7,7 @@ import {
   RectangleVertical,
   TriangleAlert,
   ShieldCheck,
+  Handshake,
   ClipboardList,
   Trophy,
 } from 'lucide-react'
@@ -54,10 +55,21 @@ const statsConfig = {
     iconColor: 'text-emerald-500',
     lightBg: 'bg-emerald-50',
   },
+  assists: {
+    label: 'Assists',
+    statLabel: 'Assists',
+    icon: Handshake,
+    color: 'from-blue-500 to-indigo-600',
+    borderColor: 'border-blue-300',
+    bgAccent: 'bg-blue-500',
+    iconColor: 'text-blue-500',
+    lightBg: 'bg-blue-50',
+  },
 }
 
 const tabs = [
   { key: 'topScorer', label: 'Top Scorer' },
+  { key: 'assists', label: 'Assists' },
   { key: 'redCard', label: 'Red Card' },
   { key: 'yellowCard', label: 'Yellow Card' },
   { key: 'cleanSheet', label: 'Clean Sheets' },
@@ -110,6 +122,7 @@ function Stats() {
     goalsScored: 0,
     redCards: 0,
     cleanSheets: 0,
+    assists: 0,
   })
   const [loading, setLoading] = useState(true)
 
@@ -140,6 +153,7 @@ function Stats() {
             goalsScored: s.goals_scored ?? 0,
             redCards: s.red_cards ?? 0,
             cleanSheets: s.clean_sheets ?? 0,
+            assists: s.assists ?? 0,
           })
         }
 
@@ -151,6 +165,7 @@ function Stats() {
             yellow_cards,
             red_cards,
             clean_sheets,
+            assists,
             player:player_id(
               id,
               name,
@@ -182,6 +197,7 @@ function Stats() {
           redCard: processLeaderboard('red_cards'),
           yellowCard: processLeaderboard('yellow_cards'),
           cleanSheet: processLeaderboard('clean_sheets'),
+          assists: processLeaderboard('assists'),
         })
       } catch (err) {
         console.error('Error fetching statistics:', err)
@@ -209,7 +225,7 @@ function Stats() {
   const summaryCards = [
     { label: 'Matches Played', value: summaryStats.matchesPlayed, icon: ClipboardList, iconColor: 'text-amber-500' },
     { label: 'Goals Scored', value: summaryStats.goalsScored, icon: Goal, iconColor: 'text-orange-500' },
-    { label: 'Red Cards', value: summaryStats.redCards, icon: RectangleVertical, iconColor: 'text-red-500' },
+    { label: 'Assists', value: summaryStats.assists, icon: Handshake, iconColor: 'text-blue-500' },
     { label: 'Clean Sheets', value: summaryStats.cleanSheets, icon: ShieldCheck, iconColor: 'text-emerald-500' },
   ]
 

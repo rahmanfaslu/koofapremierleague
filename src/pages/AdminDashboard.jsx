@@ -4,7 +4,7 @@ import {
   LogOut, Search, Users, Shield, Crosshair, Footprints, X,
   ChevronDown, ChevronUp, CalendarDays, Trophy, BarChart3,
   Vote, Plus, Trash2, Edit3, Save, Goal, RectangleVertical,
-  ShieldCheck, TableProperties, HelpCircle,
+  ShieldCheck, TableProperties, HelpCircle, Handshake,
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
@@ -693,6 +693,7 @@ function StatsTab({ teams, players }) {
 
   const categories = [
     { key: 'topScorer', label: 'Top Scorers', icon: <Goal size={16} />, statLabel: 'Goals' },
+    { key: 'assists', label: 'Assists', icon: <Handshake size={16} />, statLabel: 'Assists' },
     { key: 'redCard', label: 'Red Cards', icon: <RectangleVertical size={16} />, statLabel: 'Red Cards' },
     { key: 'yellowCard', label: 'Yellow Cards', icon: <RectangleVertical size={16} />, statLabel: 'Yellow Cards' },
     { key: 'cleanSheet', label: 'Clean Sheets', icon: <ShieldCheck size={16} />, statLabel: 'Clean Sheets' },
@@ -700,6 +701,7 @@ function StatsTab({ teams, players }) {
   const [activeCat, setActiveCat] = useState('topScorer')
   const [statsEntries, setStatsEntries] = useState({
     topScorer: [],
+    assists: [],
     redCard: [],
     yellowCard: [],
     cleanSheet: [],
@@ -711,6 +713,7 @@ function StatsTab({ teams, players }) {
     goalsScored: 0,
     redCards: 0,
     cleanSheets: 0,
+    assists: 0,
   })
 
   useEffect(() => {
@@ -732,6 +735,7 @@ function StatsTab({ teams, players }) {
           goalsScored: s.goals_scored ?? 0,
           redCards: s.red_cards ?? 0,
           cleanSheets: s.clean_sheets ?? 0,
+          assists: s.assists ?? 0,
         })
       }
 
@@ -743,6 +747,7 @@ function StatsTab({ teams, players }) {
           yellow_cards,
           red_cards,
           clean_sheets,
+          assists,
           player:player_id(id, name, team_id)
         `)
 
@@ -751,6 +756,7 @@ function StatsTab({ teams, players }) {
       if (pStats) {
         const categoriesMap = {
           topScorer: 'goals',
+          assists: 'assists',
           redCard: 'red_cards',
           yellowCard: 'yellow_cards',
           cleanSheet: 'clean_sheets',
@@ -758,6 +764,7 @@ function StatsTab({ teams, players }) {
 
         const entriesMap = {
           topScorer: [],
+          assists: [],
           redCard: [],
           yellowCard: [],
           cleanSheet: [],
@@ -824,7 +831,8 @@ function StatsTab({ teams, players }) {
         matches_played: summaryStats.matchesPlayed,
         goals_scored: summaryStats.goalsScored,
         red_cards: summaryStats.redCards,
-        clean_sheets: summaryStats.cleanSheets
+        clean_sheets: summaryStats.cleanSheets,
+        assists: summaryStats.assists,
       }
 
       if (summaryStats.id) {
@@ -838,6 +846,7 @@ function StatsTab({ teams, players }) {
       const activeEntries = statsEntries[activeCat] || []
       const fieldMap = {
         topScorer: 'goals',
+        assists: 'assists',
         redCard: 'red_cards',
         yellowCard: 'yellow_cards',
         cleanSheet: 'clean_sheets',
@@ -921,9 +930,10 @@ function StatsTab({ teams, players }) {
       {/* Summary Stats */}
       <SectionCard>
         <SectionHeader title="Tournament Summary" subtitle="Overall tournament statistics" action={<ActionButton onClick={handleSaveStats}><Save size={14} /> Save Summary</ActionButton>} />
-        <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <InputField label="Matches Played" type="number" min="0" value={summaryStats.matchesPlayed} onChange={(e) => setSummaryStats(p => ({ ...p, matchesPlayed: parseInt(e.target.value) || 0 }))} />
           <InputField label="Goals Scored" type="number" min="0" value={summaryStats.goalsScored} onChange={(e) => setSummaryStats(p => ({ ...p, goalsScored: parseInt(e.target.value) || 0 }))} />
+          <InputField label="Assists" type="number" min="0" value={summaryStats.assists} onChange={(e) => setSummaryStats(p => ({ ...p, assists: parseInt(e.target.value) || 0 }))} />
           <InputField label="Red Cards" type="number" min="0" value={summaryStats.redCards} onChange={(e) => setSummaryStats(p => ({ ...p, redCards: parseInt(e.target.value) || 0 }))} />
           <InputField label="Clean Sheets" type="number" min="0" value={summaryStats.cleanSheets} onChange={(e) => setSummaryStats(p => ({ ...p, cleanSheets: parseInt(e.target.value) || 0 }))} />
         </div>
